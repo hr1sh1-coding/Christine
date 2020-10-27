@@ -1,4 +1,8 @@
 import os
+import sys
+
+import init
+from init import *
 
 try: 
     from googleapiclient import discovery
@@ -31,6 +35,11 @@ for att in attributes:
 
 print("CONNECTED")
 
+@bot.listen('on_ready')
+async def bruh():
+    init_depression()
+    print("Started")
+
 @bot.listen('on_message')
 async def talk_it(message):
     # condition to be changed later: made to prevent spamming
@@ -41,7 +50,8 @@ async def talk_it(message):
 
     text = message.content
     text = translation(text)
-    print(text)
+
+    depression = depression_scale(text)
 
     analyze_request['comment']['text'] = text
     response = service.comments().analyze(body=analyze_request).execute()
@@ -52,19 +62,19 @@ async def talk_it(message):
     for att in attributes:
         value = response[att]['summaryScore']['value']
         refined_attributes[att] = value
-        value = f"```\n{att}: {value}\n```"
-        msg += value
 
     tags = tagger(refined_attributes)
+    owner =  f"<@!{message.guild.owner_id}> has been informed"
     if len(tags) > 0:
-        msg += "\n```"
         for tag in tags:
             msg += tag + ", "
         msg = msg[:-2]
-        msg += "\n```"
-        await message.channel.send(msg)
-    else:
-        msg += "no triggers"
-        await message.channel.send(msg)
+        sendThis = f"{owner} \n > {message.content} \n {message.author.mention}, Your message has been reported {msg}"
+        await message.channel.send(sendThis)
+
+    if depression < 1:
+        await message.channel.send(f"{owner} has been informed you are sad, pls take care")
+
+
 
 bot.run(DISCORD_TOKEN)
